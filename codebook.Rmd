@@ -1,0 +1,99 @@
+---
+title: "codebook"
+author: "Mike Lakoju"
+date: "5 April 2016"
+output: html_document
+---
+
+
+This code book  modifies and updates the available codebooks with the data to indicate all the variables and summaries calculated, along with units, and any other relevant information.
+
+##READING IN DATASETS
+
+In this section, we import data sets used in this analysis. The original data file can be downloaded at https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip and the file descriptions are explained in 'features.txt', 'README.txt', and 'activity_labels.txt'.
+
+###Reading in Test DataSets
+```{r}
+X_test <- read.table("~/getNcleanData/UCI HAR Dataset/test/X_test.txt", quote="\"", comment.char="")
+y_test <- read.table("~/getNcleanData/UCI HAR Dataset/test/y_test.txt", quote="\"", comment.char="")
+subject_test <- read.table("~/getNcleanData/UCI HAR Dataset/test/subject_test.txt", quote="\"", comment.char="")
+```
+
+###Reading in Training Datasets
+```{r}
+X_train <- read.table("~/getNcleanData/UCI HAR Dataset/train/X_train.txt", quote="\"", comment.char="")
+y_train <- read.table("~/getNcleanData/UCI HAR Dataset/train/y_train.txt", quote="\"", comment.char="")
+subject_train <- read.table("~/getNcleanData/UCI HAR Dataset/train/subject_train.txt", quote="\"", comment.char="")
+```
+
+Read in Features file which contains the variable labes for each variable. These variables partain to both training and testing data sets.
+
+###Reading in features datasets
+```{r}
+features <- read.table("~/getNcleanData/UCI HAR Dataset/features.txt", quote="\"", comment.char="")
+
+names(X_train)
+```
+
+
+##COMBINING AND FORMATIONG DATA
+
+Rename X_test and X_train data sets to featires listed in column two of features data sets. We also set the name of the activity column to "y" in both training and testing data sets.
+```{r}
+names(X_test) = features$V2; names(X_train) = features$V2
+names(y_test) = "y"; names(y_train)="y"
+```
+
+Labeling activities in the dataset
+```{r}
+labels=c("WALKING", "WALKING_UPSTAIRS", "WALKING_DOWNSTAIRS","SITTING","STANDING","LAYING")
+yt=y_test$y;ys=rep()
+for(i in 1:length(yt)){ys = c(ys, labels[yt[i]])}
+y_test$y = as.factor(ys)
+
+yt=y_train$y;ys=rep()
+for(i in 1:length(yt)){ys = c(ys, labels[yt[i]])}
+y_train$y = as.factor(ys)
+
+```
+
+###Combining the datasets
+```{r}
+names(subject_test) ="subject"; names(subject_train) ="subject"
+##column mind y's to respective X datasets
+X_test = data.frame(cbind(X_test, y_test))
+X_test = data.frame(cbind(X_test, subject_test))
+
+X_train = data.frame(cbind(X_train, y_train))
+X_train = data.frame(cbind(X_train, subject_train))
+
+##row bind X_train and X_test
+combined = data.frame(rbind(X_train, X_test))
+combined$subject=as.factor(combined$subject)
+
+
+```
+###Using grep to pick out the means and standard deviation
+```{r}
+###pick out columns representing means and stds
+ms = features$V2[grep("mean|std",features$V2)]
+
+means_stds = combined[,ms]
+
+```
+
+###Aggregating the mean for each activity and subject
+```{r}
+###aggregate mean for each activity and subject
+agg = aggregate(. ~y + subject, combined, mean)
+agg = agg[order(agg$y, agg$subject),]
+```
+
+###Writing out A tidy dataset
+```{r}
+##data table one
+write.table(combined, file="/Users/mikelakoju/getNcleanData/tidyDataCombined.txt", row.names=F)
+write.table(ms, file="/Users/mikelakoju/getNcleanData/tidyDataMeand.txt", row.names=F)
+write.table(agg, file="/Users/mikelakoju/getNcleanData/tidyDataSolution.txt", row.names=F)
+
+```
